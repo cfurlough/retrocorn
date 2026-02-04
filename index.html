@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retrocorn</title>
+    <link rel="stylesheet" href="css/style.css?v=10">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas" tabindex="0"></canvas>
+        <div id="ui-overlay">
+            <div id="health-display"></div>
+            <div id="score-display">Score: 0</div>
+        </div>
+
+        <!-- Start Screen -->
+        <div id="start-screen">
+            <div class="start-content">
+                <h1 class="game-title">RETROCORN</h1>
+                <p class="subtitle">A Magical Platformer Adventure</p>
+
+                <div class="controls-box">
+                    <h2>Controls</h2>
+                    <div class="controls-grid">
+                        <div class="control-section">
+                            <h3>Movement</h3>
+                            <div class="control-row">
+                                <span class="key">W</span>
+                                <span class="action">Jump</span>
+                            </div>
+                            <div class="control-row">
+                                <span class="key">A</span>
+                                <span class="action">Move Left</span>
+                            </div>
+                            <div class="control-row">
+                                <span class="key">S</span>
+                                <span class="action">Crouch / Drop</span>
+                            </div>
+                            <div class="control-row">
+                                <span class="key">D</span>
+                                <span class="action">Move Right</span>
+                            </div>
+                        </div>
+                        <div class="control-section">
+                            <h3>Combat</h3>
+                            <div class="control-row">
+                                <span class="key mouse">Left Click</span>
+                                <span class="action">Shoot Magic</span>
+                            </div>
+                            <div class="control-row">
+                                <span class="key mouse">Right Click</span>
+                                <span class="action">Melee Attack</span>
+                            </div>
+                            <div class="control-row">
+                                <span class="key">Q</span>
+                                <span class="action">Special Ability</span>
+                            </div>
+                            <div class="control-row">
+                                <span class="key">E</span>
+                                <span class="action">Interact</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="control-row center">
+                        <span class="key">ESC</span>
+                        <span class="action">Pause Game</span>
+                    </div>
+                </div>
+
+                <button id="start-button">START GAME</button>
+                <p class="tip">Tip: Hold W for higher jumps!</p>
+            </div>
+        </div>
+
+        <div id="game-over" class="hidden">
+            <h1>Game Over</h1>
+            <p>Press SPACE or Click to restart</p>
+        </div>
+        <div id="loading">Loading...</div>
+    </div>
+
+    <script src="js/utils.js?v=64"></script>
+    <script src="js/input.js?v=64"></script>
+    <script src="js/procedural-sprites.js?v=64"></script>
+    <script src="js/sprite.js?v=64"></script>
+    <script src="js/sound.js?v=64"></script>
+    <script src="js/particles.js?v=64"></script>
+    <script src="js/effects.js?v=64"></script>
+    <script src="js/powerups.js?v=64"></script>
+    <script src="js/player.js?v=64"></script>
+    <script src="js/enemies.js?v=64"></script>
+    <script src="js/projectile.js?v=64"></script>
+    <script src="js/level.js?v=64"></script>
+    <script src="js/collision.js?v=64"></script>
+    <script src="js/ui.js?v=64"></script>
+    <script src="js/game.js?v=64"></script>
+</body>
+</html>
