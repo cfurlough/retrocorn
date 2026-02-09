@@ -483,6 +483,57 @@ class SkeletonMage extends Enemy {
     }
 }
 
+// Lizardman - melee ground enemy (uses lizardman sprite sheet)
+class Lizardman extends Enemy {
+    constructor(x, y) {
+        // Now uses Dwarf Warrior sprite (128x128 frames), displayed at 128x128
+        super(x, y, 128, 128, 'lizardman');
+        this.health = 3;
+        this.damage = 1;
+        this.speed = 70;
+        this.scoreValue = 250;
+        this.attackRange = 70;
+        this.attackCooldownMax = 1.5;
+        // Hitbox: character feet are at ~Y=76 in 128px sprite (doubled from 38)
+        this.hitboxOffsetX = 24;
+        this.hitboxOffsetY = 0;
+        this.hitboxWidth = 80;
+        this.hitboxHeight = 76;  // Matches where feet are in sprite
+        this.spriteFacesLeft = true;  // Dwarf faces left in sprite
+    }
+
+    updateAI(deltaTime, player, projectiles) {
+        const dist = this.getDistanceToPlayer(player);
+        if (this.attackCooldown > 0) this.attackCooldown -= deltaTime;
+        if (this.isAttacking && this.isAnimationFinished()) this.isAttacking = false;
+
+        // Lock facing direction during attack
+        if (this.isAttacking) { this.vx = 0; return; }
+
+        if (dist < this.attackRange) {
+            this.facePlayer(player);
+            if (this.attackCooldown <= 0) {
+                this.isAttacking = true;
+                this.attackCooldown = this.attackCooldownMax;
+                this.playAnimation('attack');
+            }
+            this.vx = 0;
+        } else if (dist < this.detectionRange) {
+            this.facePlayer(player);
+            this.vx = this.facingRight ? this.speed : -this.speed;
+        } else {
+            this.patrolTimer += deltaTime;
+            if (this.patrolTimer > this.patrolDuration) {
+                this.patrolTimer = 0;
+                this.patrolDirection *= -1;
+            }
+            this.vx = this.speed * 0.5 * this.patrolDirection;
+            this.facingRight = this.patrolDirection > 0;
+        }
+    }
+
+}
+
 // Imp - flies and shoots fireballs (uses imp sprite sheet)
 class Imp extends Enemy {
     constructor(x, y) {
@@ -650,6 +701,10 @@ class Boss extends Enemy {
         this.addAnimation('attack', anims.attack, 12, false);
         this.addAnimation('hurt', anims.hurt, 10, false);
         this.addAnimation('death', anims.death, 8, false);
+        // Add fly animation if available (dragon boss)
+        if (anims.fly) {
+            this.addAnimation('fly', anims.fly, 10, true);
+        }
         this.playAnimation('idle');
     }
 
@@ -724,7 +779,7 @@ class Dragon extends Boss {
         this.speed = 120;
         this.scoreValue = 2000;
         this.flying = true;
-        this.attackCooldownMax = 2;
+        this.attackCooldownMax = 1;  // Faster fire attacks (was 2)
         this.hitboxOffsetX = 24;
         this.hitboxOffsetY = 40;
         this.hitboxWidth = 112;
@@ -825,6 +880,205 @@ class Dragon extends Boss {
         if (this.x + this.width > level.width - 50) this.x = level.width - 50 - this.width;
         if (this.y < 50) this.y = 50;
         if (this.y > level.height - 200) this.y = level.height - 200;
+    }
+
+    updateAnimation() {
+        if (this.isHurt) {
+            this.playAnimation('hurt');
+        } else if (this.isAttacking) {
+            this.playAnimation('attack');
+        } else if (this.flying && (Math.abs(this.vx) > 0 || Math.abs(this.vy) > 0)) {
+            // Flying and moving - use walk animation (has wing movement)
+            this.playAnimation('walk');
+        } else if (!this.flying && Math.abs(this.vx) > 0) {
+            // On ground and moving - use walk animation
+            this.playAnimation('walk');
+        } else {
+            this.playAnimation('idle');
+        }
+    }
+}
+
+// Gargoyle - stone guardian boss, swoops and throws rocks
+class Gargoyle extends Boss {
+    constructor(x, y) {
+        // Sprite frames are 158x125, display at native size for boss
+        super(x, y, 158, 125, 'gargoyle');
+        this.health = 28;
+        this.maxHealth = 28;
+        this.damage = 2;
+        this.speed = 100;
+        this.scoreValue = 2500;
+        this.flying = true;
+        this.attackCooldownMax = 1.5;
+        this.hitboxOffsetX = 30;
+        this.hitboxOffsetY = 40;
+        this.hitboxWidth = 98;
+        this.hitboxHeight = 75;
+        this.state = 'hover';
+        this.stateTimer = 0;
+        this.swoopTarget = null;
+        this.damageCooldown = 0;
+        this.spriteFacesLeft = true;
+    }
+
+    takeDamage(amount, isMelee = false) {
+        if (this.isDead) return;
+        if (this.damageCooldown > 0) return;
+
+        this.health -= amount;
+        this.isHurt = true;
+        this.hurtTimer = 0.3;
+        this.damageCooldown = 0.4;
+
+        if (this.health <= 0) this.die();
+    }
+
+    updateAI(deltaTime, player, projectiles) {
+        if (this.damageCooldown > 0) this.damageCooldown -= deltaTime;
+        if (this.attackCooldown > 0) this.attackCooldown -= deltaTime;
+        if (this.isAttacking && this.isAnimationFinished()) this.isAttacking = false;
+
+        this.stateTimer += deltaTime;
+        this.facePlayer(player);
+
+        // Phase 2 at half health - faster and more aggressive
+        const isPhase2 = this.health <= this.maxHealth / 2;
+        const speedMult = isPhase2 ? 1.5 : 1;
+
+        switch (this.state) {
+            case 'hover':
+                // Hover and track player
+                this.vy = Math.sin(this.stateTimer * 2.5) * 40;
+                this.vx = (player.x > this.x ? 1 : -1) * 60 * speedMult;
+                if (this.stateTimer > 2.5) {
+                    const actions = ['swoop', 'rock_throw', 'swipe'];
+                    if (isPhase2) actions.push('swoop', 'swipe'); // More attacks in phase 2
+                    this.state = actions[Math.floor(Math.random() * actions.length)];
+                    this.stateTimer = 0;
+                }
+                break;
+
+            case 'swipe':
+                // Dive toward player for melee swipe attack - track player live
+                if (!this.swoopTarget) {
+                    this.swoopTarget = { x: player.x, y: player.y };
+                } else {
+                    // Update target to follow player's current position
+                    this.swoopTarget.x = player.x;
+                    this.swoopTarget.y = player.y;
+                }
+                const swipeDx = this.swoopTarget.x - this.x;
+                const swipeDy = this.swoopTarget.y - this.y;
+                const swipeLen = Math.sqrt(swipeDx * swipeDx + swipeDy * swipeDy);
+                if (swipeLen > 50) {
+                    // Approach player
+                    this.vx = (swipeDx / swipeLen) * this.speed * 1.8 * speedMult;
+                    this.vy = (swipeDy / swipeLen) * this.speed * 1.8 * speedMult;
+                } else {
+                    // Close enough - do swipe attack
+                    this.vx = 0;
+                    this.vy = 0;
+                    if (!this.isAttacking && this.attackCooldown <= 0) {
+                        this.isAttacking = true;
+                        this.attackCooldown = this.attackCooldownMax;
+                        this.playAnimation('attack');
+                        // No projectiles - melee only (handled by collision system)
+                    }
+                    if (this.isAnimationFinished() || this.stateTimer > 1.5) {
+                        this.swoopTarget = null;
+                        this.state = 'recover';
+                        this.stateTimer = 0;
+                    }
+                }
+                if (this.stateTimer > 2.5) {
+                    this.swoopTarget = null;
+                    this.state = 'recover';
+                    this.stateTimer = 0;
+                }
+                break;
+
+            case 'rock_throw':
+                this.vx = 0;
+                this.vy = 0;
+                if (!this.isAttacking && this.attackCooldown <= 0) {
+                    this.isAttacking = true;
+                    this.attackCooldown = this.attackCooldownMax;
+                    this.playAnimation('attack');
+                    // Throw rocks in arc
+                    const rockCount = isPhase2 ? 3 : 2;
+                    for (let i = 0; i < rockCount; i++) {
+                        const projX = this.facingRight ? this.x + this.width : this.x;
+                        const projY = this.y + 40;
+                        const baseVx = this.facingRight ? 180 : -180;
+                        const projVx = baseVx + (i - 1) * 40;
+                        const projVy = -100 + i * 30;
+                        if (projectiles) projectiles.push(new Projectile(projX, projY, projVx, projVy, 'enemy', 'rock'));
+                    }
+                }
+                if (this.stateTimer > 1.2) {
+                    this.state = 'hover';
+                    this.stateTimer = 0;
+                }
+                break;
+
+            case 'swoop':
+                if (!this.swoopTarget) {
+                    this.swoopTarget = { x: player.x, y: player.y + 20 };
+                    this.isAttacking = true;
+                    this.playAnimation('attack');
+                }
+                const dx = this.swoopTarget.x - this.x;
+                const dy = this.swoopTarget.y - this.y;
+                const len = Math.sqrt(dx * dx + dy * dy);
+                if (len > 30) {
+                    this.vx = (dx / len) * this.speed * 2.2 * speedMult;
+                    this.vy = (dy / len) * this.speed * 2.2 * speedMult;
+                } else {
+                    this.swoopTarget = null;
+                    this.isAttacking = false;
+                    this.state = 'recover';
+                    this.stateTimer = 0;
+                }
+                if (this.stateTimer > 2) {
+                    this.swoopTarget = null;
+                    this.isAttacking = false;
+                    this.state = 'recover';
+                    this.stateTimer = 0;
+                }
+                break;
+
+            case 'recover':
+                // Fly back up
+                this.vy = -100 * speedMult;
+                this.vx = 0;
+                if (this.y < 120 || this.stateTimer > 1.5) {
+                    this.state = 'hover';
+                    this.stateTimer = 0;
+                }
+                break;
+        }
+    }
+
+    moveWithCollision(deltaTime, level) {
+        this.x += this.vx * deltaTime;
+        this.y += this.vy * deltaTime;
+        if (this.x < 50) this.x = 50;
+        if (this.x + this.width > level.width - 50) this.x = level.width - 50 - this.width;
+        if (this.y < 50) this.y = 50;
+        if (this.y > level.height - 180) this.y = level.height - 180;
+    }
+
+    updateAnimation() {
+        if (this.isHurt) {
+            this.playAnimation('hurt');
+        } else if (this.isAttacking) {
+            this.playAnimation('attack');
+        } else if (this.flying && (Math.abs(this.vx) > 0 || Math.abs(this.vy) > 0)) {
+            this.playAnimation('walk');
+        } else {
+            this.playAnimation('idle');
+        }
     }
 }
 
@@ -1023,10 +1277,12 @@ class Minotaur extends Boss {
             }
         }
 
-        // Call parent damage handling
+        // Deal damage but only flinch from melee hits — ranged attacks don't interrupt AI
         this.health -= amount;
-        this.isHurt = true;
-        this.hurtTimer = 0.2;
+        if (isMelee) {
+            this.isHurt = true;
+            this.hurtTimer = 0.2;
+        }
         if (this.health <= 0) this.die();
     }
 
@@ -1069,7 +1325,7 @@ class Minotaur extends Boss {
         }
 
         // Phase 2 at half health - trigger transition
-        if (this.health <= 60 && this.phase === 1) {
+        if (this.health <= this.maxHealth / 2 && this.phase === 1) {
             this.phase = 2;
             this.inPhaseTransition = true;
             this.phaseTransitionTimer = this.phaseTransitionDuration;
@@ -1261,6 +1517,9 @@ class HeadlessHorseman extends Boss {
         this.stateTimer = 0;
         this.gallopDirection = 1;
         this.spawnSkeletonRequested = false;
+        // Skeleton spawn timer - spawns every 5 seconds
+        this.skeletonSpawnTimer = 0;
+        this.skeletonSpawnInterval = 5;
     }
 
     updateAI(deltaTime, player, projectiles) {
@@ -1270,18 +1529,26 @@ class HeadlessHorseman extends Boss {
         this.stateTimer += deltaTime;
         this.facePlayer(player);
 
+        // Skeleton spawn timer - spawn every 5 seconds
+        this.skeletonSpawnTimer += deltaTime;
+        if (this.skeletonSpawnTimer >= this.skeletonSpawnInterval) {
+            this.skeletonSpawnTimer = 0;
+            this.spawnSkeletonRequested = true;
+        }
+
         // Phase 2 at half health
         if (this.health <= 25 && this.phase === 1) {
             this.phase = 2;
             this.attackCooldownMax = 1.2;
             this.speed = 200;
+            this.skeletonSpawnInterval = 3;  // Faster spawns in phase 2
         }
 
         switch (this.state) {
             case 'idle':
                 this.vx = this.facingRight ? this.speed * 0.3 : -this.speed * 0.3;
                 if (this.stateTimer > 1.5) {
-                    const actions = ['gallop', 'throw_head', 'summon'];
+                    const actions = ['gallop', 'throw_head'];
                     if (this.phase === 2) actions.push('gallop', 'throw_head');
                     this.state = actions[Math.floor(Math.random() * actions.length)];
                     this.stateTimer = 0;
@@ -1613,9 +1880,11 @@ function createEnemy(type, x, y) {
         case 'flying_eye': return new Bat(x, y);
         case 'skeleton': return new Skeleton(x, y);
         case 'skeleton_mage': return new SkeletonMage(x, y);
+        case 'lizardman': return new Lizardman(x, y);
         case 'imp': return new Imp(x, y);
         case 'harpy': return new Harpy(x, y);
         case 'dragon': return new Dragon(x, y);
+        case 'gargoyle': return new Gargoyle(x, y);
         case 'demon_lord': return new DemonLord(x, y);
         case 'minotaur': return new Minotaur(x, y);
         case 'headless_horseman': return new HeadlessHorseman(x, y);

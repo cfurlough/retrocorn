@@ -411,23 +411,33 @@ const PowerUpManager = {
     },
 
     draw(ctx) {
-        // Draw active power-up indicators in top-left
-        let y = 70;
+        // Draw active power-up indicators below the special bar (Q bar is at y=70, 12px tall)
+        let y = 88;
         for (const powerUp of this.activePowerUps) {
+            // Label
+            ctx.font = 'bold 8px sans-serif';
             ctx.fillStyle = this.getColor(powerUp.type);
-            ctx.fillRect(10, y, 60, 8);
+            ctx.textAlign = 'left';
+            ctx.fillText(powerUp.type.toUpperCase(), 10, y + 7);
+
+            const barX = 70;
+            const barW = 60;
+
+            // Background
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.fillRect(barX, y, barW, 8);
 
             // Remaining time bar
             const ratio = powerUp.timeRemaining / this.getDuration(powerUp.type);
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(10, y, 60 * ratio, 8);
+            ctx.fillStyle = this.getColor(powerUp.type);
+            ctx.fillRect(barX, y, barW * ratio, 8);
 
             // Border
             ctx.strokeStyle = '#000000';
             ctx.lineWidth = 1;
-            ctx.strokeRect(10, y, 60, 8);
+            ctx.strokeRect(barX, y, barW, 8);
 
-            y += 12;
+            y += 14;
         }
     },
 

@@ -33,6 +33,13 @@ class Game {
         // Level select (for testing)
         this.selectedLevelIndex = 0;
 
+        // Difficulty setting
+        this.difficulty = 'normal';  // 'normal' or 'easy'
+
+        // Level start protection (enemies can't attack for first 3 seconds)
+        this.levelStartTimer = 0;
+        this.levelStartProtectionDuration = 3;
+
         // Timing
         this.lastTime = 0;
         this.deltaTime = 0;
@@ -92,6 +99,14 @@ class Game {
             this.startButton.addEventListener('click', () => this.showCharacterSelect());
         }
 
+        // Allow spacebar to start the game from start screen
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && this.state === 'start') {
+                e.preventDefault();
+                this.showCharacterSelect();
+            }
+        });
+
         // Load first level
         this.level = createLevel(this.levelNames[0]);
 
@@ -115,6 +130,12 @@ class Game {
     }
 
     showCharacterSelect() {
+        // Read difficulty selection from radio buttons
+        const difficultyRadio = document.querySelector('input[name="difficulty"]:checked');
+        if (difficultyRadio) {
+            this.difficulty = difficultyRadio.value;
+        }
+
         // Hide start screen
         if (this.startScreen) {
             this.startScreen.classList.add('hidden');
@@ -152,6 +173,15 @@ class Game {
         this.specialKills = 0;
         this.specialReady = false;
 
+        // Apply Easy mode: start with 10 hearts (20 HP)
+        if (this.difficulty === 'easy') {
+            this.player.maxHealth = 20;
+            this.player.health = 20;
+        } else {
+            this.player.maxHealth = 6;
+            this.player.health = 6;
+        }
+
         // Reset Milestone 3 systems
         GameStats.reset();
         PowerUpManager.clear();
@@ -160,6 +190,9 @@ class Game {
 
         // Load selected level
         await this.loadLevel(this.levelNames[this.currentLevelIndex]);
+
+        // Reset level start protection timer
+        this.levelStartTimer = 0;
 
         // Start playing
         this.state = 'playing';
@@ -216,13 +249,16 @@ class Game {
         // Reset floor clear bonus
         this.floorClearBonusGiven = false;
 
+        // Reset level start protection timer
+        this.levelStartTimer = 0;
+
         // Villain chat bubbles for later levels
         const villainLines = {
-            2: "Turn back, foolish horned horse!",
-            3: "Muahahahahahahah!",
-            4: "You dare enter MY labyrinth?!",
-            5: "The dead shall feast on your soul!",
-            6: "BURN IN ETERNAL FLAMES!"
+            2: "Go away, silly unicorn!",
+            3: "Hehehe! You can't catch me!",
+            4: "This is MY maze! You'll get lost!",
+            5: "My spooky friends will stop you!",
+            6: "It's getting hot in here!"
         };
         const line = villainLines[this.currentLevelIndex];
         if (line) {
@@ -266,6 +302,13 @@ class Game {
         for (const spawn of this.level.enemySpawns) {
             const enemy = createEnemy(spawn.type, spawn.x, spawn.y);
             await enemy.loadAnimations();
+
+            // Easy mode: reduce boss health by half
+            if (this.difficulty === 'easy' && enemy.isBoss) {
+                enemy.health = Math.ceil(enemy.health / 2);
+                enemy.maxHealth = Math.ceil(enemy.maxHealth / 2);
+            }
+
             this.enemies.push(enemy);
         }
     }
@@ -424,6 +467,11 @@ class Game {
 
         if (this.state !== 'playing') return;
 
+        // Update level start protection timer
+        if (this.levelStartTimer < this.levelStartProtectionDuration) {
+            this.levelStartTimer += deltaTime;
+        }
+
         // Update game stats
         GameStats.update(deltaTime);
 
@@ -456,9 +504,10 @@ class Game {
             return;
         }
 
-        // Update enemies
+        // Update enemies (pass null for projectiles during level start protection to prevent attacks)
+        const enemyProjectiles = this.isLevelStartProtectionActive() ? null : this.projectiles;
         for (const enemy of this.enemies) {
-            enemy.update(deltaTime, this.level, this.player, this.projectiles);
+            enemy.update(deltaTime, this.level, this.player, enemyProjectiles);
 
             // Demon Lord spawns imp when hit
             if (enemy.spawnImpRequested) {
@@ -619,6 +668,9 @@ class Game {
             this.player.reset(this.level.playerStart.x, this.level.playerStart.y);
             this.projectiles = [];
 
+            // Reset level start protection
+            this.levelStartTimer = 0;
+
             // Clear active power-ups on death
             PowerUpManager.clear();
         }
@@ -730,6 +782,13 @@ class Game {
                 const bossX = this.player.x;
                 const boss = createEnemy(bossType, bossX, -200);
                 boss.loadAnimations().then(() => {});
+
+                // Easy mode: reduce boss health by half
+                if (this.difficulty === 'easy' && boss.isBoss) {
+                    boss.health = Math.ceil(boss.health / 2);
+                    boss.maxHealth = Math.ceil(boss.maxHealth / 2);
+                }
+
                 this.enemies.push(boss);
                 this.introBoss = boss;
                 this.introBossTargetY = 100;  // Where the boss floats down to
@@ -810,24 +869,31 @@ class Game {
                r1.y + r1.height > r2.y;
     }
 
-    handleCollisions() {
-        // Player vs enemies (contact damage)
-        Collision.checkPlayerEnemyCollisions(this.player, this.enemies);
+    isLevelStartProtectionActive() {
+        return this.levelStartTimer < this.levelStartProtectionDuration;
+    }
 
-        // Player melee vs enemies
+    handleCollisions() {
+        // During level start protection, enemies can't damage player
+        if (!this.isLevelStartProtectionActive()) {
+            // Player vs enemies (contact damage)
+            Collision.checkPlayerEnemyCollisions(this.player, this.enemies);
+
+            // Enemy projectiles vs player
+            Collision.checkProjectilePlayerCollisions(this.projectiles, this.player);
+
+            // Player vs hazards (spike plants)
+            this.checkHazardCollisions();
+        }
+
+        // Player melee vs enemies (always allowed)
         Collision.checkPlayerMeleeCollisions(this.player, this.enemies);
 
-        // Player projectiles vs enemies
+        // Player projectiles vs enemies (always allowed)
         Collision.checkProjectileEnemyCollisions(this.projectiles, this.enemies);
-
-        // Enemy projectiles vs player
-        Collision.checkProjectilePlayerCollisions(this.projectiles, this.player);
 
         // Projectiles vs platforms (including moving platforms)
         Collision.checkProjectilePlatformCollisions(this.projectiles, this.level.getAllPlatforms());
-
-        // Player vs hazards (spike plants)
-        this.checkHazardCollisions();
 
         // Player attacks vs gems
         this.checkGemCollisions();
@@ -1250,6 +1316,15 @@ class Game {
         UI.hideGameOver();
         UI.showLoading();
 
+        // Apply difficulty-based health
+        if (this.difficulty === 'easy') {
+            this.player.maxHealth = 20;
+            this.player.health = 20;
+        } else {
+            this.player.maxHealth = 6;
+            this.player.health = 6;
+        }
+
         // Reset Milestone 3 systems
         GameStats.reset();
         PowerUpManager.clear();
@@ -1258,6 +1333,9 @@ class Game {
 
         // Load first level
         await this.loadLevel(this.levelNames[0]);
+
+        // Reset level start protection
+        this.levelStartTimer = 0;
 
         // Resume
         UI.hideLoading();

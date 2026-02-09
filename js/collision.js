@@ -1,7 +1,7 @@
 // Collision detection and handling
 
 const Collision = {
-    // Check player vs enemies
+    // Check player vs enemies (attack-based damage only, no contact damage)
     checkPlayerEnemyCollisions(player, enemies) {
         if (player.isDead || player.invincible) return;
 
@@ -12,36 +12,46 @@ const Collision = {
 
             const enemyHitbox = enemy.getHitbox();
 
-            if (Utils.rectIntersect(playerHitbox, enemyHitbox)) {
-                // Check if player has shield
-                if (player.hasShield) {
-                    player.hasShield = false;
-                    SoundManager.play('hit');
-                    ScreenEffects.shake(5, 0.1);
-                    ParticleSystem.sparkle(player.x + player.width / 2, player.y + player.height / 2);
-                    return;
-                }
-
-                // Player takes damage from contact
-                player.takeDamage(enemy.damage);
-                SoundManager.play('hurt');
-                ScreenEffects.onPlayerHit();
-                ParticleSystem.blood(player.x + player.width / 2, player.y + player.height / 2);
-                GameStats.damageTaken += enemy.damage;
-                return;  // Only take one hit per frame
-            }
-
-            // Check if goblin is attacking
-            if (enemy.type === 'goblin' && enemy.canDealDamage && enemy.canDealDamage()) {
-                // Check melee range
+            // Check if goblin/lizardman is attacking (melee enemies)
+            if ((enemy.type === 'goblin' || enemy.type === 'lizardman') && enemy.isAttacking) {
+                // Check melee range (lizardman has shorter range)
+                const meleeRange = enemy.type === 'lizardman' ? 25 : 50;
                 const attackRange = {
-                    x: enemy.facingRight ? enemyHitbox.x + enemyHitbox.width : enemyHitbox.x - 40,
+                    x: enemy.facingRight ? enemyHitbox.x + enemyHitbox.width : enemyHitbox.x - meleeRange,
                     y: enemyHitbox.y,
-                    width: 40,
+                    width: meleeRange,
                     height: enemyHitbox.height
                 };
 
                 if (Utils.rectIntersect(playerHitbox, attackRange)) {
+                    if (player.hasShield) {
+                        player.hasShield = false;
+                        SoundManager.play('hit');
+                        ScreenEffects.shake(5, 0.1);
+                        return;
+                    }
+                    player.takeDamage(enemy.damage);
+                    SoundManager.play('hurt');
+                    ScreenEffects.onPlayerHit();
+                    ParticleSystem.blood(player.x + player.width / 2, player.y + player.height / 2);
+                    GameStats.damageTaken += enemy.damage;
+                    return;
+                }
+            }
+
+            // Check if boss is attacking (melee bosses like Minotaur, Headless Horseman, Gargoyle)
+            if (enemy.isBoss && enemy.isAttacking) {
+                const attackRange = {
+                    x: enemy.facingRight ? enemyHitbox.x + enemyHitbox.width : enemyHitbox.x - 60,
+                    y: enemyHitbox.y,
+                    width: 60,
+                    height: enemyHitbox.height
+                };
+
+                // Also check body collision for flying bosses (swoops/dives)
+                const bodyHit = enemy.flying && Utils.rectIntersect(playerHitbox, enemyHitbox);
+
+                if (bodyHit || Utils.rectIntersect(playerHitbox, attackRange)) {
                     if (player.hasShield) {
                         player.hasShield = false;
                         SoundManager.play('hit');

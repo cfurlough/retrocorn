@@ -128,9 +128,25 @@ const UI = {
         }
     },
 
+    drawProtectionIndicator(ctx, game) {
+        const timeLeft = Math.ceil(game.levelStartProtectionDuration - game.levelStartTimer);
+        const pulse = 0.6 + Math.sin(Date.now() / 100) * 0.4;
+
+        ctx.save();
+        ctx.globalAlpha = pulse;
+        ctx.font = 'bold 20px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#00ffff';
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 3;
+        ctx.strokeText(`PROTECTED: ${timeLeft}`, 400, 120);
+        ctx.fillText(`PROTECTED: ${timeLeft}`, 400, 120);
+        ctx.restore();
+    },
+
     drawSpecialBar(ctx, game) {
         const barX = 10;
-        const barY = 76;
+        const barY = 70;
         const segWidth = 18;
         const segHeight = 12;
         const segGap = 3;

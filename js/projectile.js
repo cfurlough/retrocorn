@@ -69,6 +69,12 @@ class Projectile {
                 this.width = 24;
                 this.height = 24;
                 break;
+            case 'rock':
+                this.color = '#888888';
+                this.glowColor = '#aaaaaa';
+                this.width = 22;
+                this.height = 22;
+                break;
             default: // 'magic'
                 this.color = this.owner === 'player' ? '#ff69b4' : '#ff4444';
                 this.glowColor = this.owner === 'player' ? '#ffb6c1' : '#ff6666';
@@ -78,12 +84,17 @@ class Projectile {
     }
 
     update(deltaTime) {
+        // Apply gravity to rock projectiles (arc trajectory)
+        if (this.type === 'rock') {
+            this.vy += 300 * deltaTime;
+        }
+
         // Move
         this.x += this.vx * deltaTime;
         this.y += this.vy * deltaTime;
 
-        // Rotate bone and skull projectiles
-        if (this.type === 'bone' || this.type === 'skull') {
+        // Rotate bone, skull, and rock projectiles
+        if (this.type === 'bone' || this.type === 'skull' || this.type === 'rock') {
             this.rotation += deltaTime * 10;
         }
 
@@ -152,6 +163,8 @@ class Projectile {
             this.drawFireball(ctx, centerX, centerY);
         } else if (this.type === 'skull') {
             this.drawSkull(ctx, centerX, centerY);
+        } else if (this.type === 'rock') {
+            this.drawRock(ctx, centerX, centerY);
         } else if (this.owner === 'player') {
             this.drawPlayerMagic(ctx, drawX, drawY);
         } else {
@@ -327,6 +340,42 @@ class Projectile {
         for (let i = -4; i <= 4; i += 2) {
             ctx.fillRect(i - 0.5, 4, 1.5, 3);
         }
+
+        ctx.restore();
+    }
+
+    drawRock(ctx, centerX, centerY) {
+        ctx.save();
+        ctx.translate(centerX, centerY);
+        ctx.rotate(this.rotation);
+
+        // Rocky irregular shape
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.moveTo(-8, -4);
+        ctx.lineTo(-4, -9);
+        ctx.lineTo(4, -8);
+        ctx.lineTo(9, -2);
+        ctx.lineTo(7, 6);
+        ctx.lineTo(-2, 9);
+        ctx.lineTo(-9, 4);
+        ctx.closePath();
+        ctx.fill();
+
+        // Darker cracks
+        ctx.strokeStyle = '#555555';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(-3, -6);
+        ctx.lineTo(1, 2);
+        ctx.lineTo(5, 4);
+        ctx.stroke();
+
+        // Highlight
+        ctx.fillStyle = '#aaaaaa';
+        ctx.beginPath();
+        ctx.arc(-2, -3, 3, 0, Math.PI * 2);
+        ctx.fill();
 
         ctx.restore();
     }

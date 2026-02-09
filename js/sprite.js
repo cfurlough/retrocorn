@@ -180,6 +180,7 @@ const SpriteLoader = {
         pyromancer: { path: 'assets/sprites/pyromancer', frameWidth: 80, frameHeight: 80 },
         minotaur: { path: 'assets/sprites/minotaur', frameWidth: 128, frameHeight: 128 },
         evil_wizard: { path: 'assets/sprites/evil_wizard', frameWidth: 150, frameHeight: 150 },
+        gargoyle: { path: 'assets/sprites/gargoyle', frameWidth: 158, frameHeight: 125 },
         // Enemies
         baby_dragon: { path: 'assets/sprites/baby_dragon', frameWidth: 158, frameHeight: 125 },
         imp_sprite: { path: 'assets/sprites/imp', frameWidth: 128, frameHeight: 48 },
@@ -188,6 +189,7 @@ const SpriteLoader = {
         flying_eye: { path: 'assets/sprites/flying_eye', frameWidth: 150, frameHeight: 150 },
         harpy: { path: 'assets/sprites/harpy', frameWidth: 96, frameHeight: 96 },
         skeleton_mage: { path: 'assets/sprites/skeleton_mage', frameWidth: 128, frameHeight: 128 },
+        lizardman: { path: 'assets/sprites/dwarf_warrior', frameWidth: 128, frameHeight: 128 },
     },
 
     async loadSpriteSheetAnimations(spriteType) {
@@ -197,7 +199,7 @@ const SpriteLoader = {
             return null;
         }
 
-        const anims = ['idle', 'walk', 'attack', 'hurt', 'death'];
+        const anims = ['idle', 'walk', 'attack', 'hurt', 'death', 'fly'];
         const result = {};
 
         for (const anim of anims) {
@@ -251,6 +253,7 @@ const SpriteLoader = {
             'harpy': 'harpy',
             'flying_eye': 'flying_eye',
             'skeleton_mage': 'skeleton_mage',
+            'lizardman': 'lizardman',
         }[enemyType];
 
         if (sheetType) {
@@ -280,8 +283,9 @@ const SpriteLoader = {
             'dragon': 'dragon_boss',
             'demon_lord': 'demon_boss',
             'headless_horseman': 'headless_horseman',
-            'pyromancer': 'evil_wizard',
+            'pyromancer': 'pyromancer',
             'minotaur': 'minotaur',
+            'gargoyle': 'gargoyle',
         }[bossType];
 
         if (sheetType) {

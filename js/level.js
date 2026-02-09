@@ -636,18 +636,41 @@ class Level {
     }
 
     drawHeart(ctx, x, y, size, color) {
+        const w = size * 0.9;  // Width of heart
+        const h = size * 0.85; // Height of heart
+        const topY = y - h * 0.3;
+
+        // Main heart shape
         ctx.fillStyle = color;
         ctx.beginPath();
-        const topY = y - size * 0.3;
-        ctx.moveTo(x, y + size * 0.3);
-        ctx.bezierCurveTo(x - size/2, topY - size * 0.3, x - size, topY + size * 0.2, x, y + size * 0.5);
-        ctx.bezierCurveTo(x + size, topY + size * 0.2, x + size/2, topY - size * 0.3, x, y + size * 0.3);
+        ctx.moveTo(x, y + h * 0.4);  // Bottom point
+
+        // Left curve
+        ctx.bezierCurveTo(
+            x - w * 0.55, y + h * 0.1,   // Control 1
+            x - w * 0.55, topY - h * 0.2, // Control 2
+            x, topY + h * 0.15            // Top center
+        );
+
+        // Right curve
+        ctx.bezierCurveTo(
+            x + w * 0.55, topY - h * 0.2, // Control 1
+            x + w * 0.55, y + h * 0.1,    // Control 2
+            x, y + h * 0.4                // Back to bottom
+        );
+
+        ctx.closePath();
         ctx.fill();
 
-        // Highlight
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+        // Dark outline
+        ctx.strokeStyle = '#AA0000';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Shine highlight
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
         ctx.beginPath();
-        ctx.ellipse(x - size * 0.25, y - size * 0.1, size * 0.15, size * 0.1, -0.5, 0, Math.PI * 2);
+        ctx.ellipse(x - w * 0.2, topY + h * 0.1, size * 0.12, size * 0.08, -0.5, 0, Math.PI * 2);
         ctx.fill();
     }
 
@@ -2141,32 +2164,36 @@ const LEVELS = {
         ]
     },
 
-    // Level 2: Dragon's Lair - First boss level
+    // Level 2: Gargoyle's Lair - First boss level
     level2: {
-        name: "Dragon's Lair",
+        name: "Gargoyle's Lair",
         width: 1600,
         height: 600,
         playerStart: { x: 100, y: 380 },
         levelEnd: { x: 1500, y: 400, width: 80, height: 100 },
         isBossLevel: true,
-        theme: 'dragon_cave',
+        theme: 'castle',
         platforms: [
-            // Main arena ground
-            { x: 0, y: 500, width: 400, height: 100, isGround: true },
-            { x: 500, y: 500, width: 600, height: 100, isGround: true },
-            { x: 1200, y: 500, width: 400, height: 100, isGround: true },
+            // Continuous main arena ground - no holes
+            { x: 0, y: 500, width: 1600, height: 100, isGround: true },
 
-            // Platforms for dodging
-            { x: 200, y: 380, width: 120, height: 28 },
-            { x: 600, y: 350, width: 150, height: 28 },
-            { x: 900, y: 380, width: 120, height: 28 },
-            { x: 750, y: 250, width: 140, height: 28 },
-            { x: 1300, y: 350, width: 120, height: 28 },
+            // Stone platforms for dodging gargoyle swoops
+            { x: 150, y: 400, width: 100, height: 32 },
+            { x: 350, y: 320, width: 120, height: 32 },
+            { x: 550, y: 380, width: 100, height: 32 },
+            { x: 700, y: 280, width: 140, height: 32 },
+            { x: 900, y: 350, width: 120, height: 32 },
+            { x: 1100, y: 400, width: 100, height: 32 },
+            { x: 1250, y: 300, width: 130, height: 32 },
+            { x: 1400, y: 380, width: 100, height: 32 },
+            // Higher platforms for aerial combat
+            { x: 450, y: 200, width: 100, height: 28 },
+            { x: 850, y: 180, width: 120, height: 28 },
         ],
         enemySpawns: [
-            { type: 'baby_dragon', x: 300, y: 430 },
+            { type: 'skeleton', x: 300, y: 430 },
             { type: 'goblin', x: 600, y: 420 },
-            { type: 'dragon', x: 1100, y: 250 }, // Boss
+            { type: 'gargoyle', x: 1100, y: 200 }, // Boss
         ],
         pickups: [
             { type: 'heart', x: 770, y: 200 },
@@ -2352,6 +2379,40 @@ const LEVELS = {
         ]
     },
 
+    // Pre-boss level 6a: Labyrinth Entrance - Lizardman enemies
+    level6a: {
+        name: "Labyrinth Entrance",
+        width: 2000,
+        height: 600,
+        playerStart: { x: 100, y: 380 },
+        levelEnd: { x: 1900, y: 400, width: 80, height: 100 },
+        theme: 'labyrinth',
+        platforms: [
+            { x: 0, y: 500, width: 2000, height: 100, isGround: true },
+        ],
+        hazards: [
+            { type: 'spike_plant', x: 350, y: 460, width: 60, height: 40, damage: 1 },
+            { type: 'spike_plant', x: 800, y: 460, width: 55, height: 40, damage: 1 },
+            { type: 'spike_plant', x: 1250, y: 460, width: 60, height: 40, damage: 1 },
+            { type: 'spike_plant', x: 1650, y: 460, width: 55, height: 40, damage: 1 },
+        ],
+        enemySpawns: [
+            { type: 'lizardman', x: 300, y: 420 },
+            { type: 'lizardman', x: 550, y: 420 },
+            { type: 'lizardman', x: 900, y: 420 },
+            { type: 'lizardman', x: 1200, y: 420 },
+            { type: 'lizardman', x: 1500, y: 420 },
+            { type: 'lizardman', x: 1750, y: 420 },
+        ],
+        pickups: [
+            { type: 'heart', x: 450, y: 450 },
+            { type: 'star', x: 750, y: 450 },
+            { type: 'heart', x: 1100, y: 450 },
+            { type: 'star', x: 1400, y: 450 },
+            { type: 'heart', x: 1650, y: 450 },
+        ]
+    },
+
     // Level 6: Minotaur's Labyrinth - Boss level (flat bridge arena)
     level6: {
         name: "Minotaur's Labyrinth",
@@ -2386,6 +2447,44 @@ const LEVELS = {
         ]
     },
 
+    // Pre-boss level 7a: Graveyard Path - Skeleton enemies
+    level7a: {
+        name: "Graveyard Path",
+        width: 2200,
+        height: 600,
+        playerStart: { x: 100, y: 380 },
+        levelEnd: { x: 2100, y: 400, width: 80, height: 100 },
+        theme: 'graveyard',
+        platforms: [
+            { x: 0, y: 500, width: 2200, height: 100, isGround: true },
+            { x: 100, y: 380, width: 100, height: 28 },
+            { x: 300, y: 300, width: 110, height: 28 },
+            { x: 550, y: 350, width: 120, height: 28 },
+            { x: 780, y: 280, width: 140, height: 28 },
+            { x: 1050, y: 330, width: 130, height: 28 },
+            { x: 1280, y: 260, width: 160, height: 28 },
+            { x: 1500, y: 330, width: 130, height: 28 },
+            { x: 1750, y: 280, width: 140, height: 28 },
+            { x: 2000, y: 350, width: 100, height: 28 },
+        ],
+        enemySpawns: [
+            { type: 'skeleton', x: 200, y: 430 },
+            { type: 'skeleton', x: 450, y: 430 },
+            { type: 'skeleton', x: 700, y: 430 },
+            { type: 'skeleton', x: 950, y: 430 },
+            { type: 'skeleton', x: 1200, y: 430 },
+            { type: 'skeleton', x: 1450, y: 430 },
+            { type: 'skeleton', x: 1700, y: 430 },
+            { type: 'skeleton', x: 1950, y: 430 },
+        ],
+        pickups: [
+            { type: 'heart', x: 340, y: 250 },
+            { type: 'star', x: 830, y: 230 },
+            { type: 'heart', x: 1340, y: 210 },
+            { type: 'star', x: 1800, y: 230 },
+        ]
+    },
+
     // Level 7: Haunted Graveyard - Boss level
     level7: {
         name: "Haunted Graveyard",
@@ -2403,25 +2502,19 @@ const LEVELS = {
             // Continuous ground - no holes
             { x: 0, y: 500, width: 2200, height: 100, isGround: true },
 
-            // Floating tombstone platforms
-            { x: 120, y: 400, width: 100, height: 28 },
-            { x: 280, y: 320, width: 110, height: 28 },
+            // Floating tombstone platforms - raised higher to avoid blocking horseman
+            { x: 100, y: 380, width: 100, height: 28 },
+            { x: 300, y: 300, width: 110, height: 28 },
 
-            { x: 370, y: 430, width: 60, height: 28 },
+            { x: 550, y: 350, width: 120, height: 28 },
+            { x: 780, y: 280, width: 140, height: 28 },
 
-            { x: 500, y: 380, width: 120, height: 28 },
-            { x: 680, y: 300, width: 140, height: 28 },
-            { x: 870, y: 420, width: 60, height: 28 },
+            { x: 1050, y: 330, width: 130, height: 28 },
+            { x: 1280, y: 260, width: 160, height: 28 },
+            { x: 1500, y: 330, width: 130, height: 28 },
 
-            { x: 1000, y: 360, width: 130, height: 28 },
-            { x: 1180, y: 280, width: 160, height: 28 },
-            { x: 1380, y: 360, width: 130, height: 28 },
-
-            { x: 1480, y: 430, width: 50, height: 28 },
-
-            { x: 1620, y: 380, width: 120, height: 28 },
-            { x: 1800, y: 300, width: 140, height: 28 },
-            { x: 1980, y: 380, width: 100, height: 28 },
+            { x: 1750, y: 280, width: 140, height: 28 },
+            { x: 2000, y: 350, width: 100, height: 28 },
         ],
         enemySpawns: [
             // Skeletons only (no bats or harpies)
@@ -2435,10 +2528,38 @@ const LEVELS = {
             { type: 'skeleton', x: 1850, y: 430 },
         ],
         pickups: [
-            { type: 'heart', x: 300, y: 270 },
-            { type: 'star', x: 740, y: 250 },
-            { type: 'heart', x: 1240, y: 230 },
-            { type: 'crystal', x: 1860, y: 250 },
+            { type: 'heart', x: 340, y: 250 },
+            { type: 'star', x: 830, y: 230 },
+            { type: 'heart', x: 1340, y: 210 },
+            { type: 'crystal', x: 1800, y: 230 },
+        ]
+    },
+
+    // Pre-boss level 8a: Forge Approach - Skeleton Mage enemies
+    level8a: {
+        name: "Forge Approach",
+        width: 2000,
+        height: 600,
+        playerStart: { x: 100, y: 380 },
+        levelEnd: { x: 1900, y: 400, width: 80, height: 100 },
+        theme: 'volcanic',
+        platforms: [
+            { x: 0, y: 500, width: 2000, height: 100, isGround: true },
+        ],
+        enemySpawns: [
+            { type: 'skeleton_mage', x: 300, y: 400 },
+            { type: 'skeleton_mage', x: 600, y: 400 },
+            { type: 'skeleton_mage', x: 900, y: 400 },
+            { type: 'skeleton_mage', x: 1200, y: 400 },
+            { type: 'skeleton_mage', x: 1500, y: 400 },
+            { type: 'skeleton_mage', x: 1800, y: 400 },
+        ],
+        pickups: [
+            { type: 'heart', x: 450, y: 350 },
+            { type: 'star', x: 750, y: 350 },
+            { type: 'heart', x: 1050, y: 350 },
+            { type: 'star', x: 1350, y: 350 },
+            { type: 'heart', x: 1700, y: 350 },
         ]
     },
 
@@ -2523,7 +2644,7 @@ const LEVELS = {
 };
 
 // Level order for progression
-const LEVEL_ORDER = ['level1', 'level2', 'level6', 'level7', 'level8', 'level3', 'level5'];
+const LEVEL_ORDER = ['level1', 'level2', 'level6a', 'level6', 'level7a', 'level7', 'level8a', 'level8', 'level3', 'level5'];
 
 function createLevel(levelName) {
     const data = LEVELS[levelName];
